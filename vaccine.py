@@ -13,6 +13,7 @@ from emailing import credentials
 STATE = "PA"
 CITY = "PITTSBURGH"
 QUERY_INTERVAL = 5 * 60  # seconds
+LOG_INTERVAL = 12 * 5  # query intervals
 
 # no touch
 FULL = "Fully Booked"
@@ -83,6 +84,7 @@ def is_available(vaccine_info: List[Dict], city: str) -> bool:
 
 if __name__ == "__main__":
     logging.info("Beginning vaccine query loop")
+    counter = 0
     while True:
         response = query_vaccine_info(STATE)
         location_data = response["responsePayloadData"]["data"]
@@ -91,4 +93,7 @@ if __name__ == "__main__":
             send_email(f"There's a vaccine appointment available in {CITY}")
             logging.info("sending email!")
 
+        counter += 1
+        if counter % LOG_INTERVAL == 0:
+            logging.info(f"active for {counter * QUERY_INTERVAL / 60 / 60} hours")
         sleep(QUERY_INTERVAL)
