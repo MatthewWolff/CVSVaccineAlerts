@@ -11,9 +11,14 @@ from requests import get, status_codes
 from emailing import credentials
 
 STATE = "PA"
-CITY = "PITTSBURGH"
+CITIES = {"PITTSBURGH", "WASHINGTON", "CARNEGIE", "AMBRIDGE", "BUTLER", "ELLWOOD CITY", "GIBSONIA", "HOMESTEAD",
+          "MASONTOWN", "MONACA", "NEW KENSINGTON", "NORTH HUNTINGTON", "SWISSVALE", "WHITEHALL", "WILKINSBURG"}
 QUERY_INTERVAL = 5 * 60  # seconds
 LOG_INTERVAL = 12 * 5  # query intervals
+REFRACTORY_INTERVAL = 12 * 2  # query intervals (to avoid constant reminders)
+
+# only remind again after the refractory interval
+LOCATION_REFRACTORIES = dict()
 
 # no touch
 FULL = "Fully Booked"
@@ -41,6 +46,7 @@ def send_email(text) -> None:
     }
     string = f"""
     curl "https://api.postmarkapp.com/email" \
+      --silent \
       -X POST \
       -H "Accept: application/json" \
       -H "Content-Type: application/json" \
@@ -49,9 +55,8 @@ def send_email(text) -> None:
             "From": "{smtp["Email"]}",
             "To": "{smtp["Email"]}",
             "Subject": "COVID Vaccine Booking Availability",
-            "HtmlBody": "{text}"
+            "HtmlBody": "{text}. Appointment link: https://www.cvs.com/vaccine/intake/store/covid-screener/covid-qns "
           }}'"""
-
     system(string)
     print()  # flush buffer
 
@@ -75,11 +80,24 @@ def query_vaccine_info(state: str = "PA") -> Dict:
     return resp
 
 
-def is_available(vaccine_info: List[Dict], city: str) -> bool:
-    for loc in vaccine_info:
-        if loc["city"] == city:
-            return loc["status"] != FULL
-    return False
+def available_locations(vaccine_info: List[Dict]) -> List[str]:
+    return [loc["city"] for loc in vaccine_info if loc["city"] in CITIES and loc["status"] != FULL]
+
+
+def check_refractories(locations: List[str]) -> List[str]:
+    return [c for c in locations if c not in LOCATION_REFRACTORIES]
+
+
+def decrement_refractories():
+    for key in LOCATION_REFRACTORIES:
+        LOCATION_REFRACTORIES[key] -= 1
+        if LOCATION_REFRACTORIES[key] == 0:
+            del LOCATION_REFRACTORIES[key]
+
+
+def set_refractories(remindable_locations):
+    for loc in remindable_locations:
+        LOCATION_REFRACTORIES[loc] = REFRACTORY_INTERVAL
 
 
 if __name__ == "__main__":
@@ -89,11 +107,19 @@ if __name__ == "__main__":
         response = query_vaccine_info(STATE)
         location_data = response["responsePayloadData"]["data"]
 
-        if is_available(location_data[STATE], CITY):
-            send_email(f"There's a vaccine appointment available in {CITY}")
-            logging.info("sending email!")
+        # check what's available, also check we haven't reminded recently
+        availabilities = available_locations(location_data[STATE])
+        if availabilities:
+            remindable_locations = check_refractories(availabilities)
+            set_refractories(remindable_locations)
+            send_email(f"There is a vaccine appointment available in {', '.join(remindable_locations)}")
+            logging.info(f"sending email! ({', '.join(remindable_locations)})")
 
+        # log when active for a certain length of time
         counter += 1
         if counter % LOG_INTERVAL == 0:
             logging.info(f"active for {counter * QUERY_INTERVAL / 60 / 60} hours")
+
+        # decrement reminder timers
+        decrement_refractories()
         sleep(QUERY_INTERVAL)
