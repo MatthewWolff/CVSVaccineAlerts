@@ -42,3 +42,10 @@ By default, it queries the vaccination appointments every 5 minutes and will not
 ```python
 python3 vaccine.py
 ```
+
+---
+
+I run mine on a raspberry pi in the background, 24/7. I have set up my email inbox such that when I receive an email with the Subject line in the script, it will forward the email to an email address that my phone provider uses for my phone. You can set up the same:
+
+* **ATT**: 2625555555@txt.att.net
+* **Verizon**: 2625555555@vtext.com
