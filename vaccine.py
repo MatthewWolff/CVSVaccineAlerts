@@ -55,7 +55,7 @@ def send_email(text) -> None:
             "From": "{smtp["Email"]}",
             "To": "{smtp["Email"]}",
             "Subject": "COVID Vaccine Booking Availability",
-            "HtmlBody": "{text}. Appointment link: https://www.cvs.com/vaccine/intake/store/covid-screener/covid-qns "
+            "HtmlBody": "{text}. Appointment link: https://www.cvs.com/vaccine/intake/store/cvd-schedule?icid=coronavirus-lp-vaccine-pa-statetool "
           }}'"""
     system(string)
     print()  # flush buffer
