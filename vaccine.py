@@ -108,12 +108,11 @@ if __name__ == "__main__":
         location_data = response["responsePayloadData"]["data"]
 
         # check what's available, also check we haven't reminded recently
-        availabilities = available_locations(location_data[STATE])
+        availabilities = check_refractories(available_locations(location_data[STATE]))
         if availabilities:
-            remindable_locations = check_refractories(availabilities)
-            set_refractories(remindable_locations)
-            send_email(f"There is a vaccine appointment available in {', '.join(remindable_locations)}")
-            logging.info(f"sending email! ({', '.join(remindable_locations)})")
+            set_refractories(availabilities)
+            send_email(f"There is a vaccine appointment available in {', '.join(availabilities)}")
+            logging.info(f"sending email! ({', '.join(availabilities)})")
 
         # log when active for a certain length of time
         counter += 1
