@@ -89,7 +89,7 @@ def check_refractories(locations: List[str]) -> List[str]:
 
 
 def decrement_refractories():
-    for key in LOCATION_REFRACTORIES:
+    for key in list(LOCATION_REFRACTORIES.keys()):
         LOCATION_REFRACTORIES[key] -= 1
         if LOCATION_REFRACTORIES[key] == 0:
             del LOCATION_REFRACTORIES[key]
